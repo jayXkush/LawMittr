@@ -250,6 +250,8 @@ Content: ${extractedText}`;
             }}
           >
             Document & Image Analysis
+            <><br /></>
+            (Kindly upload only images for now,Working on Pdf readability)
           </Typography>
 
           {error && (
