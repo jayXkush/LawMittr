@@ -7,9 +7,6 @@ import { razorpayWebhook } from './controllers/payment.controller';
 
 const app = express();
 
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', service: 'backend' });
-});
 
 app.use(
   cors({
@@ -17,6 +14,12 @@ app.use(
     credentials: true,
   })
 );
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'backend' });
+});
+
+
 
 app.post(
   '/api/payments/webhook',
