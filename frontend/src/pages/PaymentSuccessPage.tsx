@@ -51,7 +51,7 @@ export function PaymentSuccessPage() {
           </div>
           <h1 className="text-2xl font-bold text-[var(--color-primary)]">Payment Successful</h1>
           <p className="mt-2 text-[var(--color-muted-foreground)]">
-            Your consultation is confirmed. A confirmation email has been sent if email is configured.
+            Your consultation is confirmed.
           </p>
           <Badge className="mt-3" variant={apt?.paymentMode === 'demo' ? 'warning' : 'success'}>
             {paymentLabel}
