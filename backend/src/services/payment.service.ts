@@ -2,7 +2,6 @@ import Razorpay from 'razorpay';
 import { env } from '../config/env';
 import { Appointment, IAppointment, PaymentMode } from '../models/Appointment';
 import { LawyerProfile } from '../models/LawyerProfile';
-import { User } from '../models/User';
 import { AppError } from '../utils/AppError';
 import {
   generateDemoTransactionId,
@@ -10,7 +9,7 @@ import {
   generateMeetingPassword,
 } from '../utils/meetingCredentials';
 import { verifyPaymentSignature } from '../utils/razorpaySignature';
-import { sendAppointmentConfirmationEmails } from './email.service';
+
 
 const razorpay = new Razorpay({
   key_id: env.RAZORPAY_KEY_ID,
@@ -102,32 +101,6 @@ export async function confirmAppointmentPayment(input: ConfirmPaymentInput) {
   appointment.meetingId = generateMeetingId();
   appointment.meetingPassword = generateMeetingPassword();
   await appointment.save();
-
-  const [client, lawyer] = await Promise.all([
-    User.findById(appointment.clientId).select('name email'),
-    User.findById(appointment.lawyerId).select('name email'),
-  ]);
-
-  if (client && lawyer) {
-    try {
-      await sendAppointmentConfirmationEmails({
-        clientName: client.name,
-        clientEmail: client.email,
-        lawyerName: lawyer.name,
-        lawyerEmail: lawyer.email,
-        date: appointment.date.toISOString().slice(0, 10),
-        startTime: appointment.startTime,
-        endTime: appointment.endTime,
-        amount: appointment.amount,
-        paymentMode: input.paymentMode,
-        meetingId: appointment.meetingId!,
-        meetingPassword: appointment.meetingPassword!,
-        notes: appointment.notes,
-      });
-    } catch (err) {
-      console.error('[email] Failed to send confirmation:', err);
-    }
-  }
 
   return appointment;
 }
