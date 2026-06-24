@@ -1,58 +1,81 @@
 # LawMittr
 
-AI-powered legal consultation platform — Phase 1 (auth) + Phase 2 (lawyers & booking).
+Full-stack legal consultation platform with AI-powered document analysis, real-time video consultations, and a community forum.
 
-## Documentation (for AI / team handoff)
+Built as a portfolio project to demonstrate production-style architecture across React, Node.js, Python, and multiple third-party integrations.
 
-| File | Purpose |
-|------|---------|
-| [PROJECT_CONTEXT.md](./PROJECT_CONTEXT.md) | Product vision, conventions, **paste-ready prompt for new chats** |
-| [CURRENT_PROGRESS.md](./CURRENT_PROGRESS.md) | What's done per phase, gaps, next steps |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | System design, folders, data model, flows |
-| [API_CONTRACTS.md](./API_CONTRACTS.md) | REST API request/response reference |
+## What it does
 
-## Project Structure
+- **Auth & roles** — Register/login as a user, lawyer, or admin. JWT-based auth with role-gated routes and dashboards.
+- **Lawyer discovery** — Browse, search, and filter lawyers by specialization, city, language, experience. View profiles with ratings and fees.
+- **Appointment booking** — Pick a slot, book it. Double-booking is blocked at the database level.
+- **Payments** — Razorpay integration for real payments + a demo payment mode for recruiter demos (backend-validated, clearly marked in DB).
+- **Video consultation** — Peer-to-peer WebRTC calls with screen sharing, chat, mute/camera toggles, meeting timer. Signaling via Socket.IO.
+- **AI document analyzer** — Upload legal PDFs, get summaries, risky clause detection, obligation extraction, plain-language explanations. Ask follow-up questions with citation-backed answers. Built with RAG (LangChain + Gemini + ChromaDB).
+- **Community forum** — Create posts (anonymous or not), comment, upvote, tag by category. Moderation + reporting system.
+- **Admin dashboard** — Verify lawyers, manage users, moderate forum posts, view platform analytics.
+
+## Tech stack
+
+| Layer | Stack |
+|-------|-------|
+| Frontend | React, Vite, TypeScript, Tailwind CSS, React Router, TanStack Query, Zustand, Zod, Framer Motion |
+| Backend | Node.js, Express, TypeScript, MongoDB/Mongoose, JWT, bcrypt, Socket.IO |
+| AI Service | Python, FastAPI, LangChain, Gemini API, ChromaDB |
+| Payments | Razorpay |
+| Real-time | Socket.IO (signaling), WebRTC (peer-to-peer video) |
+
+## Project structure
 
 ```
 lawmittr/
-├── frontend/          # React + Vite + TypeScript + Tailwind
+├── frontend/           # React SPA
 │   └── src/
-│       ├── api/       # Axios client & API modules
-│       ├── components/# UI (shadcn-style) + layout
-│       ├── hooks/     # React Query auth hooks
-│       ├── pages/     # Route pages & dashboards
-│       ├── store/     # Zustand auth state
-│       ├── types/     # Shared TypeScript types
-│       └── validators/# Zod form schemas
+│       ├── api/        # Axios client & API modules
+│       ├── components/ # UI components + layout
+│       ├── hooks/      # React Query hooks
+│       ├── pages/      # Route pages & dashboards
+│       ├── store/      # Zustand state
+│       ├── types/      # TypeScript types
+│       └── validators/ # Zod schemas
 │
-└── backend/           # Express + TypeScript + MongoDB
-    └── src/
-        ├── config/    # Env & database
-        ├── controllers/
-        ├── middleware/# auth, roles, validation, errors
-        ├── models/
-        ├── routes/
-        ├── utils/
-        └── validators/
+├── backend/            # Express REST API + Socket.IO
+│   └── src/
+│       ├── config/     # Env & DB config
+│       ├── controllers/
+│       ├── middleware/  # Auth, roles, validation, error handling
+│       ├── models/
+│       ├── routes/
+│       ├── services/
+│       ├── socket/     # WebRTC signaling
+│       ├── utils/
+│       └── validators/
+│
+└── ai-service/         # FastAPI + RAG pipeline
+    ├── routers/
+    ├── services/
+    ├── prompts/
+    └── models/
 ```
 
-## Prerequisites
+## Getting started
+
+### Prerequisites
 
 - Node.js 18+
-- MongoDB (local or [MongoDB Atlas](https://www.mongodb.com/atlas))
-
-## Setup
+- Python 3.10+
+- MongoDB (local or [Atlas](https://www.mongodb.com/atlas))
+- Razorpay account (or use demo mode)
+- Gemini API key
 
 ### Backend
 
 ```bash
 cd backend
-cp .env.example .env   # edit MONGODB_URI and JWT_SECRET
+cp .env.example .env   # fill in MONGODB_URI, JWT_SECRET, Razorpay keys, etc.
 npm install
-npm run dev
+npm run dev             # http://localhost:5000
 ```
-
-API runs at `http://localhost:5000`.
 
 ### Frontend
 
@@ -60,64 +83,51 @@ API runs at `http://localhost:5000`.
 cd frontend
 cp .env.example .env
 npm install
-npm run dev
+npm run dev             # http://localhost:5173
 ```
 
-App runs at `http://localhost:5173`.
+### AI Service
 
-## API Endpoints
+```bash
+cd ai-service
+python -m venv venv
+source venv/bin/activate   # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env       # fill in GEMINI_API_KEY
+uvicorn main:app --reload  # http://localhost:8000
+```
 
-### Auth (Phase 1)
+## API overview
 
-| Method | Endpoint         | Auth | Description        |
-|--------|------------------|------|--------------------|
-| POST   | `/api/auth/register` | —  | Register (user/lawyer) |
-| POST   | `/api/auth/login`    | —  | Login              |
-| GET    | `/api/auth/me`       | JWT | Current user    |
+| Area | Key endpoints |
+|------|--------------|
+| Auth | `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me` |
+| Lawyers | `GET /api/lawyers`, `GET /api/lawyers/:id`, `PUT /api/lawyers/profile/me` |
+| Appointments | `POST /api/appointments`, `GET /api/appointments/me`, `PATCH /api/appointments/:id/status` |
+| Payments | `POST /api/payments/create-order`, `POST /api/payments/verify`, `POST /api/payments/demo` |
+| Meetings | `POST /api/meetings/validate`, Socket.IO room events |
+| Documents | `POST /api/documents/upload`, `POST /api/documents/analyze`, `POST /api/documents/ask` |
+| Forum | `GET /api/forum/posts`, `POST /api/forum/posts`, `POST /api/forum/posts/:id/comments` |
+| Admin | `GET /api/admin/users`, `PATCH /api/admin/lawyers/:id/verify`, `GET /api/admin/analytics` |
 
-### Lawyers (Phase 2)
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/lawyers` | — | List/search lawyers (pagination, filters) |
-| GET | `/api/lawyers/:id` | — | Lawyer profile + available slots |
-| GET | `/api/lawyers/profile/me` | Lawyer | Own profile |
-| PUT | `/api/lawyers/profile/me` | Lawyer | Update profile |
-| GET | `/api/lawyers/availability/me` | Lawyer | List own slots |
-| POST | `/api/lawyers/availability/me` | Lawyer | Add slot |
-| DELETE | `/api/lawyers/availability/me/:slotId` | Lawyer | Delete available slot |
-
-### Appointments (Phase 2)
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/api/appointments` | User | Book slot (prevents double booking) |
-| GET | `/api/appointments/me?filter=upcoming\|history` | User | User appointments |
-| PATCH | `/api/appointments/me/:id/cancel` | User | Cancel booking |
-| GET | `/api/appointments/lawyer` | Lawyer | Lawyer appointments |
-| PATCH | `/api/appointments/:id/status` | Lawyer | Confirm/complete/cancel |
-
-| GET | `/health` | — | Health check |
+Full API reference in [API_CONTRACTS.md](./API_CONTRACTS.md).
 
 ## Roles
 
-- **user** — Client dashboard (`/dashboard/user`)
-- **lawyer** — Lawyer dashboard (`/dashboard/lawyer`)
-- **admin** — Admin dashboard (`/dashboard/admin`) — create via DB: set `role: "admin"` on a user document
+| Role | Access |
+|------|--------|
+| User | Book appointments, join video calls, upload docs for AI analysis, post in forum |
+| Lawyer | Manage profile & availability, accept/reject appointments, conduct consultations |
+| Admin | Verify lawyers, moderate forum, manage users, view analytics |
 
-## Tech (Phase 1)
+To create an admin: set `role: "admin"` directly on a user document in MongoDB.
 
-**Frontend:** React, Vite, TypeScript, Tailwind CSS v4, React Router, Axios, TanStack Query, Zustand, Zod, Framer Motion, shadcn-style UI components
+## Deployment
 
-**Backend:** Express, TypeScript, MongoDB/Mongoose, JWT, bcrypt, Zod validation, middleware-based architecture
+| Service | Platform |
+|---------|----------|
+| Frontend | Render |
+| Backend | Render |
+| Database | MongoDB Atlas |
+| AI Service | Render |
 
-## Phase 2 Flow
-
-1. **Lawyer:** Complete profile → add availability slots in dashboard.
-2. **User:** Browse `/lawyers` → filter/search → view profile → select slot → book.
-3. **Lawyer:** Confirm appointments in dashboard. Double-booking is blocked via atomic slot updates.
-
-## Next Phases
-
-WebRTC video, AI/RAG document analysis, Razorpay payments, Socket.IO, community forum.
-"# LawMittr" 
